@@ -1,0 +1,23 @@
+package am.ik.blog.entry;
+
+import org.springframework.stereotype.Repository;
+
+import lombok.AllArgsConstructor;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+@Repository
+@AllArgsConstructor
+public class EntryMapperReactiveWrapper {
+	private final EntryMapper entryMapper;
+
+	public Mono<Entry> findOne(EntryId entryId) {
+		return Mono.defer(() -> Mono.justOrEmpty(entryMapper.findOne(entryId)))
+				.subscribeOn(Schedulers.elastic());
+	}
+
+	public Mono<Void> save(Mono<Entry> entry) {
+		return entry.publishOn(Schedulers.parallel()).doOnSuccess(entryMapper::save)
+				.then();
+	}
+}
