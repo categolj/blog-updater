@@ -12,7 +12,7 @@ public class EntryMapperReactiveWrapper {
 	private final EntryMapper entryMapper;
 
 	public Mono<Entry> findOne(EntryId entryId) {
-		return Mono.defer(() -> Mono.justOrEmpty(entryMapper.findOne(entryId)))
+		return Mono.defer(() -> Mono.justOrEmpty(entryMapper.findOne(entryId, false)))
 				.subscribeOn(Schedulers.elastic());
 	}
 
