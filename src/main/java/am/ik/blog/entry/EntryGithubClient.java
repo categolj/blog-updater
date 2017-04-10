@@ -36,14 +36,18 @@ public class EntryGithubClient {
 	private final ConcurrentMap<EntryId, Tuple2<LastModified, Entry>> lastModifieds = new ConcurrentHashMap<>();
 	private final BlogUpdaterProps props;
 
-	public Mono<Entry> get(EntryId entryId) {
+	HttpHeaders headers() {
 		HttpHeaders headers = new HttpHeaders();
 		if (!StringUtils.isEmpty(props.getGithubToken())) {
 			headers.add(HttpHeaders.AUTHORIZATION, "token " + props.getGithubToken());
 		}
+		return headers;
+	}
+
+	public Mono<Entry> get(EntryId entryId) {
 		return webClient.get()
 				.uri("/contents/content/{id}.md", format("%05d", entryId.value))
-				.headers(headers)
+				.headers(headers())
 				.ifModifiedSince(lastModifieds
 						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, null))
 						.getT1().value)
@@ -103,7 +107,8 @@ public class EntryGithubClient {
 	private Flux<JsonNode> commits(EntryId entryId) {
 		return webClient.get()
 				.uri("/commits?path={path}", format("content/%05d.md", entryId.value))
-				.exchange().then(response -> response.bodyToMono(JsonNode.class))
+				.headers(headers()).exchange()
+				.then(response -> response.bodyToMono(JsonNode.class))
 				.flatMap(node -> Flux
 						.fromStream(StreamSupport.stream(node.spliterator(), false)));
 	}
