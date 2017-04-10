@@ -6,11 +6,8 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.springframework.http.HttpHeaders;
@@ -107,12 +104,7 @@ public class EntryGithubClient {
 		return webClient.get()
 				.uri("/commits?path={path}", format("content/%05d.md", entryId.value))
 				.exchange().then(response -> response.bodyToMono(JsonNode.class))
-				.flatMap(node -> Flux.fromStream(elements(node)));
-	}
-
-	private Stream<JsonNode> elements(JsonNode node) {
-		return StreamSupport.stream(
-				Spliterators.spliterator(node.elements(), node.size(), Spliterator.SIZED),
-				false);
+				.flatMap(node -> Flux
+						.fromStream(StreamSupport.stream(node.spliterator(), false)));
 	}
 }
