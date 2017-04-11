@@ -18,8 +18,8 @@ public class Emoji {
 	private static final Pattern pattern = Pattern.compile(
 			"((([\uD83C\uDF00-\uD83D\uDDFF]|[\uD83D\uDE00-\uD83D\uDE4F]|[\uD83D\uDE80-\uD83D\uDEFF]|[\u2600-\u26FF]|[\u2700-\u27BF])[\\x{1F3FB}-\\x{1F3FF}]?))");
 	public static String PROTOCOL = "https:";
-	public static String BASE = "//twemoji.maxcdn.com/2/";
-	public static String SIZE = "72x72";
+	public static String BASE = "//twemoji.maxcdn.com/";
+	public static String SIZE = "16x16";
 	public static String EXTENSION = ".png";
 	public static String CLASSNAME = "emoji";
 

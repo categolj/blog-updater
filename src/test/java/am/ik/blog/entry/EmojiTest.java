@@ -9,7 +9,7 @@ public class EmojiTest {
 	public void parse() throws Exception {
 		String s = Emoji.parse("Good \uD83D\uDE4C");
 		assertThat(s).isEqualTo(
-				"Good <img class=\"emoji\" draggable=\"false\" src=\"https://twemoji.maxcdn.com/2/72x72/1f64c.png\">");
+				"Good <img class=\"emoji\" draggable=\"false\" src=\"https://twemoji.maxcdn.com/16x16/1f64c.png\">");
 	}
 
 }
