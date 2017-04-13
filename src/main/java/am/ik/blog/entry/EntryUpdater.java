@@ -31,24 +31,24 @@ public class EntryUpdater {
 
 	Mono<Entry> getAndSave(EntryId entryId) {
 		Mono<Entry> entry = githubClient.get(entryId);
-		return entry.then(e -> entryMapper.save(entry).then(entry));
+		return entry.then(() -> entryMapper.save(entry).then(entry));
 	}
 
 	Mono<ServerResponse> add(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).then(e -> created(req.uri()).body(fromObject(e)))
+		return getAndSave(entryId).transform(e -> created(req.uri()).body(fromObject(e)))
 				.otherwiseIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> update(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).then(e -> ok().body(fromObject(e)))
+		return getAndSave(entryId).transform(e -> ok().body(fromObject(e)))
 				.otherwiseIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> get(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return entryMapper.findOne(entryId).then(e -> ok().body(fromObject(e)))
+		return entryMapper.findOne(entryId).transform(e -> ok().body(fromObject(e)))
 				.otherwiseIfEmpty(notFound().build());
 	}
 
