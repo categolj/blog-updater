@@ -20,12 +20,20 @@ public class EntryFactory {
 		this.frontMatterFactory = new FrontMatterFactory(yaml);
 	}
 
-	boolean isPublic(Resource file) {
-		return file != null && file.getFilename().matches("[0-9]+\\.md");
+	static boolean isPublic(Resource file) {
+		return file != null && isPublic(file.getFilename());
 	}
 
-	EntryId parseEntryId(Resource file) {
-		String entryId = file.getFilename().replace(".md", "");
+	static boolean isPublic(String fileName) {
+		return fileName.matches("[0-9]+\\.md");
+	}
+
+	static EntryId parseEntryId(Resource file) {
+		return parseEntryId(file.getFilename());
+	}
+
+	static EntryId parseEntryId(String fileName) {
+		String entryId = fileName.replace(".md", "");
 		return new EntryId(Long.valueOf(entryId));
 	}
 
