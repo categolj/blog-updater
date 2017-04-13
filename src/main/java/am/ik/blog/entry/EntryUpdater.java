@@ -36,19 +36,19 @@ public class EntryUpdater {
 	Mono<ServerResponse> add(ServerRequest req) {
 		EntryId entryId = entryId(req);
 		return getAndSave(entryId).transform(e -> created(req.uri()).body(e, Entry.class))
-				.otherwiseIfEmpty(notFound().build());
+				.switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> update(ServerRequest req) {
 		EntryId entryId = entryId(req);
 		return getAndSave(entryId).transform(e -> ok().body(e, Entry.class))
-				.otherwiseIfEmpty(notFound().build());
+				.switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> get(ServerRequest req) {
 		EntryId entryId = entryId(req);
 		return entryMapper.findOne(entryId).transform(e -> ok().body(e, Entry.class))
-				.otherwiseIfEmpty(notFound().build());
+				.switchIfEmpty(notFound().build());
 	}
 
 }
