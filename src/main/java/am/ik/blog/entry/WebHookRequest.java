@@ -1,0 +1,17 @@
+package am.ik.blog.entry;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import lombok.Data;
+
+@Data
+public class WebHookRequest {
+	private List<String> paths;
+
+	public List<EntryId> getEntryIds() {
+		return paths.stream().map(s -> s.replace("content/", ""))
+				.filter(EntryFactory::isPublic).map(EntryFactory::parseEntryId)
+				.collect(Collectors.toList());
+	}
+}

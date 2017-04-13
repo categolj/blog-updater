@@ -20,4 +20,9 @@ public class EntryMapperReactiveWrapper {
 		return entry.publishOn(Schedulers.parallel()).doOnSuccess(entryMapper::save)
 				.then();
 	}
+
+	public Mono<Void> delete(EntryId entryId) {
+		return Mono.just(entryId).publishOn(Schedulers.parallel())
+				.doOnSuccess(entryMapper::delete).then();
+	}
 }
