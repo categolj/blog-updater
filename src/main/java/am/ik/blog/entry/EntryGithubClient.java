@@ -51,7 +51,7 @@ public class EntryGithubClient {
 				.ifModifiedSince(lastModifieds
 						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, null))
 						.getT1().value)
-				.exchange().then(response -> {
+				.exchange().flatMap(response -> {
 					LastModified lastModified = new LastModified(
 							response.headers().asHttpHeaders().getLastModified());
 					if (response.statusCode() == HttpStatus.NOT_MODIFIED) {
@@ -70,8 +70,8 @@ public class EntryGithubClient {
 					}
 					return response.bodyToMono(JsonNode.class)
 							.map(node -> node.get("content").asText()).map(this::decode)
-							.then(body -> bodyToBuilder(entryId, body))
-							.then(builder -> builderToEntry(entryId, builder))
+							.flatMap(body -> bodyToBuilder(entryId, body))
+							.flatMap(builder -> builderToEntry(entryId, builder))
 							.map(Entry::useFrontMatterDate)
 							.doOnSuccess(entry -> lastModifieds.put(entryId,
 									Tuples.of(lastModified, entry)));
@@ -108,8 +108,8 @@ public class EntryGithubClient {
 		return webClient.get()
 				.uri("/commits?path={path}", format("content/%05d.md", entryId.value))
 				.headers(headers()).exchange()
-				.then(response -> response.bodyToMono(JsonNode.class))
-				.flatMap(node -> Flux
+				.flatMap(response -> response.bodyToMono(JsonNode.class))
+				.flatMapMany(node -> Flux
 						.fromStream(StreamSupport.stream(node.spliterator(), false)));
 	}
 }
