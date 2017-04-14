@@ -1,6 +1,7 @@
 package am.ik.blog.entry;
 
 import static java.util.stream.Collectors.toList;
+import static org.springframework.web.reactive.function.BodyInserters.fromObject;
 import static org.springframework.web.reactive.function.server.RequestPredicates.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
@@ -59,19 +60,19 @@ public class EntryUpdater {
 
 	Mono<ServerResponse> add(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).transform(e -> created(req.uri()).body(e, Entry.class))
+		return getAndSave(entryId).flatMap(e -> created(req.uri()).body(fromObject(e)))
 				.switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> update(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).transform(e -> ok().body(e, Entry.class))
+		return getAndSave(entryId).flatMap(e -> ok().body(fromObject(e)))
 				.switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> get(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return entryMapper.findOne(entryId).transform(e -> ok().body(e, Entry.class))
+		return entryMapper.findOne(entryId).flatMap(e -> ok().body(fromObject(e)))
 				.switchIfEmpty(notFound().build());
 	}
 
