@@ -22,7 +22,7 @@ public class EntryMapperReactiveWrapper {
 	}
 
 	public Mono<Void> delete(EntryId entryId) {
-		return Mono.just(entryId).publishOn(Schedulers.parallel())
+		return Mono.just(entryId).publishOn(Schedulers.elastic())
 				.doOnSuccess(entryMapper::delete).then();
 	}
 }
