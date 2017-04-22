@@ -17,7 +17,7 @@ public class EntryMapperReactiveWrapper {
 	}
 
 	public Mono<Void> save(Mono<Entry> entry) {
-		return entry.publishOn(Schedulers.parallel()).doOnSuccess(entryMapper::save)
+		return entry.publishOn(Schedulers.elastic()).doOnSuccess(entryMapper::save)
 				.then();
 	}
 
