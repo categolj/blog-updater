@@ -55,7 +55,7 @@ public class EntryUpdater {
 
 	Mono<Entry> getAndSave(EntryId entryId) {
 		Mono<Entry> entry = githubClient.get(entryId);
-		return entry.then(() -> entryMapper.save(entry).then(entry));
+		return entry.flatMap(e -> entryMapper.save(entry).then(entry));
 	}
 
 	Mono<ServerResponse> add(ServerRequest req) {

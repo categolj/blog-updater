@@ -22,15 +22,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
-        <spring-amqp.version>1.7.1.RELEASE</spring-amqp.version>
-        <spring-integration.version>4.3.8.RELEASE</spring-integration.version>
+        <spring-cloud.version>Finchley.BUILD-SNAPSHOT</spring-cloud.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>am.ik.blog</groupId>
             <artifactId>blog-mapper</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <version>4.1.0</version>
         </dependency>
         <!--<dependency>-->
         <!--<groupId>io.pivotal.spring.cloud</groupId>-->
@@ -89,12 +88,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-stream-rabbit</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-web</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -129,7 +122,7 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>Dalston.RELEASE</version>
+                <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
