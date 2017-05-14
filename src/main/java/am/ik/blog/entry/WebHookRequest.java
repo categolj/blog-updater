@@ -11,7 +11,7 @@ public class WebHookRequest {
 
 	public List<EntryId> getEntryIds() {
 		return paths.stream().map(s -> s.replace("content/", ""))
-				.filter(EntryFactory::isPublic).map(EntryFactory::parseEntryId)
+				.filter(Entry::isPublicFileName).map(EntryId::fromFileName)
 				.collect(Collectors.toList());
 	}
 }
