@@ -7,6 +7,5 @@ applications:
   - blog-db
   - blog-rabbit
   env:
-    blog-updater.github-token: 9bba42196744abcf7322b58cf6063912c1627109
     logging.level.reactor.ipc.netty: INFO
     logging.level.am.ik.blog: DEBUG

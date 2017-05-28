@@ -124,6 +124,7 @@ jobs:
           environment_variables:
             SECURITY_USER_NAME: {{ops-username}}
             SECURITY_USER_PASSWORD: {{ops-password}}
+            blog-updater.github-token: {{blog-updater-github-token}}
         on_success:
           put: slack-alert
           params: &SLACK_SUCCESS
@@ -248,6 +249,10 @@ jobs:
           manifest: repo/manifest.yml
           path: output/app.jar
           current_app_name: blog-updater
+          environment_variables:
+            SECURITY_USER_NAME: {{ops-username}}
+            SECURITY_USER_PASSWORD: {{ops-password}}
+            blog-updater.github-token: {{blog-updater-github-token}}
         on_success:
           put: slack-alert
           params:
