@@ -3,8 +3,6 @@ applications:
   buildpack: java_buildpack_offline
   memory: 1g
   instances: 1
-  domains:
-  - pezapp.io
   path: target/blog-updater-4.0.0-SNAPSHOT.jar
   services:
   - blog-db

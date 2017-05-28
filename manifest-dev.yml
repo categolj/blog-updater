@@ -1,9 +1,7 @@
 applications:
-- name: blog-updater
+- name: blog-updater-dev
   memory: 1g
   instances: 1
-  domains:
-  - cfapps.io
   path: target/blog-updater-4.0.0-SNAPSHOT.jar
   services:
   - blog-db
