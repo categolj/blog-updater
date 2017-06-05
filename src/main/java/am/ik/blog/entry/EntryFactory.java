@@ -21,20 +21,11 @@ public class EntryFactory {
 	}
 
 	static boolean isPublic(Resource file) {
-		return file != null && isPublic(file.getFilename());
-	}
-
-	static boolean isPublic(String fileName) {
-		return fileName.matches("[0-9]+\\.md");
+		return file != null && Entry.isPublicFileName(file.getFilename());
 	}
 
 	static EntryId parseEntryId(Resource file) {
-		return parseEntryId(file.getFilename());
-	}
-
-	static EntryId parseEntryId(String fileName) {
-		String entryId = fileName.replace(".md", "");
-		return new EntryId(Long.valueOf(entryId));
+		return EntryId.fromFileName(file.getFilename());
 	}
 
 	public Optional<Entry.EntryBuilder> parseBody(EntryId entryId, InputStream body) {
