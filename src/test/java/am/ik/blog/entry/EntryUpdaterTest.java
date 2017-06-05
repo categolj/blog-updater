@@ -31,10 +31,11 @@ public class EntryUpdaterTest {
 	@Test
 	public void handleAdded() throws Exception {
 		Entry entry99999 = Fixtures.entry99999();
-		BDDMockito.given(githubClient.get(entry99999.entryId))
+		BDDMockito.given(githubClient.get("making/blog.ik.am", entry99999.entryId))
 				.willReturn(Mono.just(entry99999));
 		Message<?> message = MessageBuilder
-				.withPayload("{\"paths\":[\"content/99999.md\"]}")
+				.withPayload(
+						"{\"paths\":[\"content/99999.md\"],\"repository\":\"making/blog.ik.am\"}")
 				.setHeader("type", "added").build();
 		sink.input().send(message);
 		Thread.sleep(100);
@@ -46,10 +47,11 @@ public class EntryUpdaterTest {
 	@Test
 	public void handleModified() throws Exception {
 		Entry entry99999 = Fixtures.entry99999();
-		BDDMockito.given(githubClient.get(entry99999.entryId))
+		BDDMockito.given(githubClient.get("making/blog.ik.am", entry99999.entryId))
 				.willReturn(Mono.just(entry99999));
 		Message<?> message = MessageBuilder
-				.withPayload("{\"paths\":[\"content/99999.md\"]}")
+				.withPayload(
+						"{\"paths\":[\"content/99999.md\"],\"repository\":\"making/blog.ik.am\"}")
 				.setHeader("type", "modified").build();
 		sink.input().send(message);
 		Thread.sleep(100);
@@ -62,7 +64,8 @@ public class EntryUpdaterTest {
 	public void handleRemoved() throws Exception {
 		Entry entry99999 = Fixtures.entry99999();
 		Message<?> message = MessageBuilder
-				.withPayload("{\"paths\":[\"content/99999.md\"]}")
+				.withPayload(
+						"{\"paths\":[\"content/99999.md\"],\"repository\":\"making/blog.ik.am\"}")
 				.setHeader("type", "removed").build();
 		sink.input().send(message);
 		Thread.sleep(100);

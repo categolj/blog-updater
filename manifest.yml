@@ -1,0 +1,12 @@
+applications:
+- name: blog-updater
+  buildpack: java_buildpack_offline
+  memory: 1g
+  instances: 1
+  path: target/blog-updater-4.0.0-SNAPSHOT.jar
+  services:
+  - blog-db
+  - blog-rabbit
+  env:
+    logging.level.reactor.ipc.netty: INFO
+    logging.level.am.ik.blog: DEBUG
