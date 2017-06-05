@@ -20,12 +20,21 @@ public class EntryFactory {
 		this.frontMatterFactory = new FrontMatterFactory(yaml);
 	}
 
+	static boolean isPublicFileName(String filename) {
+		return filename.matches("[0-9]+\\.md");
+	}
+
 	static boolean isPublic(Resource file) {
-		return file != null && Entry.isPublicFileName(file.getFilename());
+		return file != null && isPublicFileName(file.getFilename());
+	}
+
+	static EntryId parseEntryId(String filename) {
+		String entryId = filename.replace(".md", "");
+		return new EntryId(entryId);
 	}
 
 	static EntryId parseEntryId(Resource file) {
-		return EntryId.fromFileName(file.getFilename());
+		return parseEntryId(file.getFilename());
 	}
 
 	public Optional<Entry.EntryBuilder> parseBody(EntryId entryId, InputStream body) {
