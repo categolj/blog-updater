@@ -124,7 +124,8 @@ jobs:
           environment_variables:
             SECURITY_USER_NAME: {{ops-username}}
             SECURITY_USER_PASSWORD: {{ops-password}}
-            blog-updater.github-token: {{blog-updater-github-token}}
+            blog-updater.github-token.making/blog.ik.am: {{blog-updater-github-token}}
+            blog-updater.github-token.utmaki/blog.ik.am: {{blog-updater-github-token}}
         on_success:
           put: slack-alert
           params: &SLACK_SUCCESS
@@ -252,7 +253,8 @@ jobs:
           environment_variables:
             SECURITY_USER_NAME: {{ops-username}}
             SECURITY_USER_PASSWORD: {{ops-password}}
-            blog-updater.github-token: {{blog-updater-github-token}}
+            blog-updater.github-token.making/blog.ik.am: {{blog-updater-github-token}}
+            blog-updater.github-token.utmaki/blog.ik.am: {{blog-updater-github-token}}
         on_success:
           put: slack-alert
           params:

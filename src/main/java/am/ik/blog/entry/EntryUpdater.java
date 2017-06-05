@@ -35,8 +35,8 @@ public class EntryUpdater {
 	void handleUpdate(@Payload WebHookRequest request) {
 		log.info("Received {}", request);
 		Mono.when(request.getEntryIds().stream()
-				.map(entryId -> this.getAndSave(entryId).then()).collect(toList()))
-				.doOnSuccess(o -> log.info("Updated!"))
+				.map(entryId -> this.getAndSave(request.getRepository(), entryId).then())
+				.collect(toList())).doOnSuccess(o -> log.info("Updated!"))
 				.doOnError(e -> log.error("Error!", e)).subscribe();
 	}
 
@@ -53,21 +53,22 @@ public class EntryUpdater {
 		return new EntryId(Long.valueOf(req.pathVariable("entryId")));
 	}
 
-	Mono<Entry> getAndSave(EntryId entryId) {
-		Mono<Entry> entry = githubClient.get(entryId);
+	Mono<Entry> getAndSave(String repository, EntryId entryId) {
+		Mono<Entry> entry = githubClient.get(repository, entryId);
 		return entry.flatMap(e -> entryMapper.save(entry).then(entry));
 	}
 
 	Mono<ServerResponse> add(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).flatMap(e -> created(req.uri()).body(fromObject(e)))
+		return getAndSave(req.queryParam("repository").orElse(""), entryId)
+				.flatMap(e -> created(req.uri()).body(fromObject(e)))
 				.switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> update(ServerRequest req) {
 		EntryId entryId = entryId(req);
-		return getAndSave(entryId).flatMap(e -> ok().body(fromObject(e)))
-				.switchIfEmpty(notFound().build());
+		return getAndSave(req.queryParam("repository").orElse(""), entryId)
+				.flatMap(e -> ok().body(fromObject(e))).switchIfEmpty(notFound().build());
 	}
 
 	Mono<ServerResponse> get(ServerRequest req) {

@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 public class WebHookRequest {
 	private List<String> paths;
+	private String repository;
 
 	public List<EntryId> getEntryIds() {
 		return paths.stream().map(s -> s.replace("content/", ""))

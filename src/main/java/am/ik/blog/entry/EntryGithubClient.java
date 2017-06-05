@@ -6,6 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.StreamSupport;
@@ -29,25 +30,28 @@ import reactor.util.function.Tuples;
 @RequiredArgsConstructor
 public class EntryGithubClient {
 	private final WebClient webClient = WebClient.builder()
-			.baseUrl("https://api.github.com/repos/making/blog.ik.am")
+			.baseUrl("https://api.github.com/repos/")
 			.defaultHeader(HttpHeaders.USER_AGENT, "am.ik.blog.BlogApiApplication")
 			.build();
 	private final EntryFactory entryFactory = new EntryFactory();
 	private final ConcurrentMap<EntryId, Tuple2<LastModified, Entry>> lastModifieds = new ConcurrentHashMap<>();
 	private final BlogUpdaterProps props;
 
-	HttpHeaders headers() {
+	HttpHeaders headers(String repository) {
 		HttpHeaders headers = new HttpHeaders();
-		if (!StringUtils.isEmpty(props.getGithubToken())) {
-			headers.add(HttpHeaders.AUTHORIZATION, "token " + props.getGithubToken());
+		String token = Optional.ofNullable(props.getGithubToken())
+				.map(m -> m.get(repository)).orElse("");
+		if (!StringUtils.isEmpty(token)) {
+			headers.add(HttpHeaders.AUTHORIZATION, "token " + token);
 		}
 		return headers;
 	}
 
-	public Mono<Entry> get(EntryId entryId) {
+	public Mono<Entry> get(String repository, EntryId entryId) {
 		return webClient.get()
-				.uri("/contents/content/{id}.md", format("%05d", entryId.value))
-				.headers(headers())
+				.uri(repository + "/contents/content/{id}.md",
+						format("%05d", entryId.value))
+				.headers(headers(repository))
 				.ifModifiedSince(lastModifieds
 						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, null))
 						.getT1().value)
@@ -71,7 +75,8 @@ public class EntryGithubClient {
 					return response.bodyToMono(JsonNode.class)
 							.map(node -> node.get("content").asText()).map(this::decode)
 							.flatMap(body -> bodyToBuilder(entryId, body))
-							.flatMap(builder -> builderToEntry(entryId, builder))
+							.flatMap(builder -> builderToEntry(repository, entryId,
+									builder))
 							.map(Entry::useFrontMatterDate)
 							.doOnSuccess(entry -> lastModifieds.put(entryId,
 									Tuples.of(lastModified, entry)));
@@ -86,13 +91,15 @@ public class EntryGithubClient {
 		return Mono.justOrEmpty(entryFactory.parseBody(entryId, body));
 	}
 
-	private Mono<Entry> builderToEntry(EntryId entryId, Entry.EntryBuilder builder) {
-		return author(entryId).map(t -> builder.created(t.getT1()).updated(t.getT2()))
+	private Mono<Entry> builderToEntry(String repository, EntryId entryId,
+			Entry.EntryBuilder builder) {
+		return author(repository, entryId)
+				.map(t -> builder.created(t.getT1()).updated(t.getT2()))
 				.map(Entry.EntryBuilder::build);
 	}
 
-	private Mono<Tuple2<Author, Author>> author(EntryId entryId) {
-		Flux<JsonNode> commits = commits(entryId);
+	private Mono<Tuple2<Author, Author>> author(String repository, EntryId entryId) {
+		Flux<JsonNode> commits = commits(repository, entryId);
 		Mono<Author> updated = commits.next().map(this::toAuthor);
 		Mono<Author> created = commits.last().map(this::toAuthor);
 		return created.and(updated);
@@ -104,10 +111,11 @@ public class EntryGithubClient {
 				new EventTime(OffsetDateTime.parse(author.get("date").asText())));
 	}
 
-	private Flux<JsonNode> commits(EntryId entryId) {
+	private Flux<JsonNode> commits(String repository, EntryId entryId) {
 		return webClient.get()
-				.uri("/commits?path={path}", format("content/%05d.md", entryId.value))
-				.headers(headers()).exchange()
+				.uri(repository + "/commits?path={path}",
+						format("content/%05d.md", entryId.value))
+				.headers(headers(repository)).exchange()
 				.flatMap(response -> response.bodyToMono(JsonNode.class))
 				.flatMapMany(node -> Flux
 						.fromStream(StreamSupport.stream(node.spliterator(), false)));
