@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Profile("cloud")
-public class CloudConnectorConfig extends AbstractCloudConfig {
+public class CloudConfig extends AbstractCloudConfig {
 	@Bean
 	@ConfigurationProperties(prefix = "spring.datasource.tomcat")
 	DataSource dataSource() {
