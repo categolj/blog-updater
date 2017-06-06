@@ -118,6 +118,7 @@ public class EntryGithubClient {
 	}
 
 	private Flux<JsonNode> commits(String repository, EntryId entryId) {
+		log.info("commits repository={}, entryId={}", repository, entryId);
 		return webClient.get()
 				.uri(repository + "/commits?path={path}",
 						format("content/%05d.md", entryId.value))
