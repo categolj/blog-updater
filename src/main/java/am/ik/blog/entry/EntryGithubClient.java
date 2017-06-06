@@ -20,6 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import am.ik.blog.BlogUpdaterProps;
+import am.ik.blog.entry.factory.EntryFactory;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

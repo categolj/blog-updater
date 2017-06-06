@@ -15,7 +15,8 @@ public class Fixtures {
 						new EventTime(OffsetDateTime.of(2017, 4, 1, 1, 0, 0, 0,
 								ZoneOffset.ofHours(9))),
 						new EventTime(OffsetDateTime.of(2017, 5, 1, 1, 0, 0, 0,
-								ZoneOffset.ofHours(9)))))
+								ZoneOffset.ofHours(9))),
+						new PremiumPoint(100)))
 				.content(new Content("test data!")).build().useFrontMatterDate();
 	}
 }

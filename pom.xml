@@ -37,7 +37,7 @@
         <dependency>
             <groupId>am.ik.blog</groupId>
             <artifactId>blog-mapper</artifactId>
-            <version>4.2.0</version>
+            <version>4.3.0</version>
         </dependency>
         <!--<dependency>-->
         <!--<groupId>io.pivotal.spring.cloud</groupId>-->
