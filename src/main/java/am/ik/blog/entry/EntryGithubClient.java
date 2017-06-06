@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,7 @@ import reactor.util.function.Tuples;
 @Component
 @RequiredArgsConstructor
 public class EntryGithubClient {
+	private final Logger log = LoggerFactory.getLogger(EntryGithubClient.class);
 	private final WebClient webClient = WebClient.builder()
 			.baseUrl("https://api.github.com/repos/")
 			.defaultHeader(HttpHeaders.USER_AGENT, "am.ik.blog.BlogApiApplication")
@@ -43,12 +46,14 @@ public class EntryGithubClient {
 		String token = Optional.ofNullable(props.getGithubToken())
 				.map(m -> m.get(repository)).orElse("");
 		if (!StringUtils.isEmpty(token)) {
+			log.info("Set Github Token for {}", repository);
 			headers.add(HttpHeaders.AUTHORIZATION, "token " + token);
 		}
 		return headers;
 	}
 
 	public Mono<Entry> get(String repository, EntryId entryId) {
+		log.info("get repository={}, entryId={}", repository, entryId);
 		return webClient.get()
 				.uri(repository + "/contents/content/{id}.md",
 						format("%05d", entryId.value))
