@@ -47,7 +47,7 @@ public class EntryGithubClient {
 				.map(m -> m.get(repository)).orElseGet(() -> {
 					String key = "blog-updater.github-token." + repository;
 					log.warn("fallback to get from environment variable({})", key);
-					return System.getProperty(key);
+					return System.getenv(key);
 				});
 		if (!StringUtils.isEmpty(token)) {
 			log.info("Set Github Token for {}", repository);
