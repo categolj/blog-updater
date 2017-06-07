@@ -42,6 +42,7 @@ public class EntryGithubClient {
 	private final BlogUpdaterProps props;
 
 	HttpHeaders headers(String repository) {
+		System.out.println(props.getGithubToken());
 		HttpHeaders headers = new HttpHeaders();
 		String token = Optional.ofNullable(props.getGithubToken())
 				.map(m -> m.get(repository)).orElse("");
