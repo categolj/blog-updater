@@ -14,6 +14,8 @@ import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -24,6 +26,7 @@ import reactor.core.publisher.Mono;
 public class EntryUpdater {
 	private final EntryGithubClient githubClient;
 	private final EntryMapperReactiveWrapper entryMapper;
+	private final ObjectMapper objectMapper;
 
 	public RouterFunction<ServerResponse> route() {
 		return RouterFunctions.route(POST("/entries/{entryId}"), this::add)
@@ -32,7 +35,8 @@ public class EntryUpdater {
 	}
 
 	@StreamListener(target = Sink.INPUT, condition = "headers['type']=='added' || headers['type']=='modified'")
-	void handleUpdate(@Payload WebHookRequest request) {
+	void handleUpdate(@Payload String body) throws Exception {
+		WebHookRequest request = this.objectMapper.readValue(body, WebHookRequest.class);
 		log.info("Received {}", request);
 		Mono.when(request.getEntryIds().stream()
 				.map(entryId -> this.getAndSave(request.getRepository(), entryId).then())
@@ -41,7 +45,8 @@ public class EntryUpdater {
 	}
 
 	@StreamListener(target = Sink.INPUT, condition = "headers['type']=='removed'")
-	void handleDelete(@Payload WebHookRequest request) {
+	void handleDelete(@Payload String body) throws Exception {
+		WebHookRequest request = this.objectMapper.readValue(body, WebHookRequest.class);
 		log.info("Received {}", request);
 		Mono.when(
 				request.getEntryIds().stream().map(entryMapper::delete).collect(toList()))

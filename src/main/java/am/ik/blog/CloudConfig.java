@@ -3,23 +3,22 @@ package am.ik.blog;
 import javax.sql.DataSource;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.cloud.config.java.AbstractCloudConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ClassUtils;
 
 @Configuration
 @Profile("cloud")
 public class CloudConfig extends AbstractCloudConfig {
 
 	@Bean
-	@ConfigurationProperties(prefix = "spring.datasource.tomcat")
+	@ConfigurationProperties(prefix = "spring.datasource.hikari")
 	DataSource dataSource(BlogDbCredentials credentials) {
-		return new DataSourceBuilder(ClassUtils.getDefaultClassLoader()) //
+		return DataSourceBuilder.create() //
 				.url(credentials.getJdbcUrl() + "&allowMultiQueries=true") //
 				.username(credentials.getUsername()) //
 				.password(credentials.getPassword()) //

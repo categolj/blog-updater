@@ -9,6 +9,7 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
@@ -41,19 +42,19 @@ public class EntryGithubClient {
 	private final ConcurrentMap<EntryId, Tuple2<LastModified, Entry>> lastModifieds = new ConcurrentHashMap<>();
 	private final BlogUpdaterProps props;
 
-	HttpHeaders headers(String repository) {
-		HttpHeaders headers = new HttpHeaders();
-		String token = Optional.ofNullable(props.getGithubToken())
-				.map(m -> m.get(repository)).orElseGet(() -> {
-					String key = "blog-updater.github-token." + repository;
-					log.warn("fallback to get from environment variable({})", key);
-					return System.getenv(key);
-				});
-		if (!StringUtils.isEmpty(token)) {
-			log.info("Set Github Token for {}", repository);
-			headers.add(HttpHeaders.AUTHORIZATION, "token " + token);
-		}
-		return headers;
+	Consumer<HttpHeaders> headers(String repository) {
+		return headers -> {
+			String token = Optional.ofNullable(props.getGithubToken())
+					.map(m -> m.get(repository)).orElseGet(() -> {
+						String key = "blog-updater.github-token." + repository;
+						log.warn("fallback to get from environment variable({})", key);
+						return System.getenv(key);
+					});
+			if (!StringUtils.isEmpty(token)) {
+				log.info("Set Github Token for {}", repository);
+				headers.add(HttpHeaders.AUTHORIZATION, "token " + token);
+			}
+		};
 	}
 
 	public Mono<Entry> get(String repository, EntryId entryId) {
@@ -63,7 +64,7 @@ public class EntryGithubClient {
 						format("%05d", entryId.value))
 				.headers(headers(repository))
 				.ifModifiedSince(lastModifieds
-						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, null))
+						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, Entry.builder().build()))
 						.getT1().value)
 				.exchange().flatMap(response -> {
 					LastModified lastModified = new LastModified(
@@ -112,7 +113,7 @@ public class EntryGithubClient {
 		Flux<JsonNode> commits = commits(repository, entryId);
 		Mono<Author> updated = commits.next().map(this::toAuthor);
 		Mono<Author> created = commits.last().map(this::toAuthor);
-		return created.and(updated);
+		return Mono.zip(updated, created);
 	}
 
 	private Author toAuthor(JsonNode node) {
