@@ -44,12 +44,18 @@ public class EntryGithubClient {
 
 	Consumer<HttpHeaders> headers(String repository) {
 		return headers -> {
-			String token = Optional.ofNullable(props.getGithubToken())
-					.map(m -> m.get(repository)).orElseGet(() -> {
-						String key = "blog-updater.github-token." + repository;
-						log.warn("fallback to get from environment variable({})", key);
-						return System.getenv(key);
-					});
+			String token = Optional
+					.ofNullable(props.getGithubToken())
+					.map(m -> m.get(repository))
+					.orElseGet(
+							() -> {
+								String key = "BLOG_UPDATER_GITHUB_TOKEN_"
+										+ (repository.toUpperCase().replace("/", "_")
+												.replace(".", "_"));
+								log.warn("fallback to get from environment variable({})",
+										key);
+								return System.getenv(key);
+							});
 			if (!StringUtils.isEmpty(token)) {
 				log.info("Set Github Token for {}", repository);
 				headers.add(HttpHeaders.AUTHORIZATION, "token " + token);

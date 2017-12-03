@@ -57,12 +57,12 @@ spec:
             configMapKeyRef:
               name: blog-config
               key: ops-password
-        - name: blog-updater.github-token.making/blog.ik.am
+        - name: BLOG_UPDATER_GITHUB_TOKEN_MAKING_BLOG_IK_AM
           valueFrom:
             configMapKeyRef:
               name: blog-updater-config
               key: blog-updater-github-token
-        - name: blog-updater.github-token.utmaki/blog.ik.am
+        - name: BLOG_UPDATER_GITHUB_TOKEN_UTMAKI_BLOG_IK_AM
           valueFrom:
             configMapKeyRef:
               name: blog-updater-config
