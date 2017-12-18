@@ -41,10 +41,6 @@ spec:
         ports:
         - containerPort: 8080
         env:
-#        - name: LOGGING_LEVEL_AM_IK_BLOG
-#          value: DEBUG
-        - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_JDBC_DATASOURCE
-          value: DEBUG
         - name: SERVER_PORT
           value: "8080"
         - name: SPRING_PROFILES_ACTIVE
