@@ -1,15 +1,22 @@
 package am.ik.blog.entry;
 
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import lombok.AllArgsConstructor;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Repository
-@AllArgsConstructor
 public class EntryMapperReactiveWrapper {
 	private final EntryMapper entryMapper;
+	private final TransactionTemplate tx;
+
+	public EntryMapperReactiveWrapper(EntryMapper entryMapper,
+			PlatformTransactionManager transactionManager) {
+		this.entryMapper = entryMapper;
+		this.tx = new TransactionTemplate(transactionManager);
+	}
 
 	public Mono<Entry> findOne(EntryId entryId) {
 		return Mono.defer(() -> Mono.justOrEmpty(entryMapper.findOne(entryId, false)))
@@ -17,12 +24,24 @@ public class EntryMapperReactiveWrapper {
 	}
 
 	public Mono<Void> save(Mono<Entry> entry) {
-		return entry.publishOn(Schedulers.elastic()).doOnSuccess(entryMapper::save)
+		return entry //
+				.publishOn(Schedulers.elastic()) //
+				.doOnSuccess(e -> tx.execute(s -> {
+					// TODO
+					entryMapper.save(e);
+					return null;
+				})) //
 				.then();
 	}
 
 	public Mono<Void> delete(EntryId entryId) {
-		return Mono.just(entryId).publishOn(Schedulers.elastic())
-				.doOnSuccess(entryMapper::delete).then();
+		return Mono.just(entryId) //
+				.publishOn(Schedulers.elastic()) //
+				.doOnSuccess(id -> tx.execute(s -> {
+					// TODO
+					entryMapper.delete(entryId);
+					return null;
+				})) //
+				.then();
 	}
 }
