@@ -119,7 +119,7 @@ public class EntryGithubClient {
 		Flux<JsonNode> commits = commits(repository, entryId);
 		Mono<Author> updated = commits.next().map(this::toAuthor);
 		Mono<Author> created = commits.last().map(this::toAuthor);
-		return Mono.zip(updated, created);
+		return Mono.zip(created, updated);
 	}
 
 	private Author toAuthor(JsonNode node) {
