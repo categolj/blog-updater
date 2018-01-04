@@ -74,7 +74,6 @@ jobs:
         resource: repo-develop
         trigger: true
     - task: mvn-test
-      privileged: true
       params:
         <<: *JAVA_OPS
       config: &MVN_TEST_CONFIG
@@ -227,6 +226,10 @@ jobs:
       put: slack-alert
       params:
         <<: *SLACK_FAILURE
+    ensure:
+      put: k8s-develop
+      params:
+        kubectl: apply -f updated/blog-updater.yml
   - put: k8s-develop
     params:
       kubectl: apply -f updated/blog-updater.yml
@@ -296,7 +299,6 @@ jobs:
       passed:
       - merge-develop-to-master
   - task: mvn-test
-    privileged: true
     params:
       <<: *JAVA_OPS
     config:
@@ -461,6 +463,10 @@ jobs:
       put: slack-alert
       params:
         <<: *SLACK_FAILURE
+    ensure:
+      put: k8s-master
+      params:
+        kubectl: apply -f updated/blog-updater.yml
   - put: k8s-master
     params:
       kubectl: apply -f updated/blog-updater.yml
