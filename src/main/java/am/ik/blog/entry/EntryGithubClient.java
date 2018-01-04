@@ -19,6 +19,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.client.HttpClient;
+import reactor.ipc.netty.http.client.HttpClientRequest;
 import reactor.util.function.Tuple2;
 
 public class EntryGithubClient {
@@ -41,17 +42,7 @@ public class EntryGithubClient {
 				"https://api.github.com/repos/%s/contents/content/%05d.md", repo,
 				entryId.value);
 		return this.httpClient //
-				.request(HttpMethod.GET, url, req -> {
-					String r = (repo.toUpperCase().replace("/", "_").replace(".", "_"));
-					String key = "BLOG_UPDATER_GITHUB_TOKEN_" + r;
-					String token = System.getenv(key);
-					if (token != null) {
-						return req.addHeader("Authorization", "token " + token);
-					}
-					else {
-						return req;
-					}
-				}) //
+				.request(HttpMethod.GET, url, req -> authorization(req, repo)) //
 				.flatMap(r -> r.receive().aggregate().asByteArray()) //
 				.map(this::toJsonNode) //
 				.map(n -> n.get("content").asText()) //
@@ -59,6 +50,13 @@ public class EntryGithubClient {
 				.flatMap(body -> bodyToBuilder(entryId, body)) //
 				.flatMap(builder -> builderToEntry(repo, entryId, builder)) //
 				.map(Entry::useFrontMatterDate);
+	}
+
+	private HttpClientRequest authorization(HttpClientRequest req, String repo) {
+		String r = repo.toUpperCase().replace("/", "_").replace(".", "_");
+		String key = "BLOG_UPDATER_GITHUB_TOKEN_" + r;
+		String token = System.getenv(key);
+		return token == null ? req : req.addHeader("Authorization", "token " + token);
 	}
 
 	private JsonNode toJsonNode(byte[] b) {
