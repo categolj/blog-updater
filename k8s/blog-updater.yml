@@ -1,120 +1,42 @@
-kind: Service
-apiVersion: v1
+apiVersion: projectriff.io/v1
+kind: Topic
 metadata:
-  name: blog-updater-service
+  name: blog-webhook
   namespace: blog
-  labels:
-    app: blog-updater
-spec:
-  selector:
-    app: blog-updater
-  ports:
-  - protocol: TCP
-    port: 8080
-    nodePort: 30091
-  type: NodePort
 ---
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: projectriff.io/v1
+kind: Function
 metadata:
   name: blog-updater
   namespace: blog
-  labels:
-    app: blog-updater
 spec:
-  replicas: 1
-  revisionHistoryLimit: 4
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
-  template:
-    metadata:
-      labels:
-        app: blog-updater
-      annotations:
-        kubernetes.io/change-cause: "FIXME"
-    spec:
-      containers:
-      - name: blog-updater
-        image: asia.gcr.io/fe-tmaki/blog-updater:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        env:
-        - name: SERVER_PORT
-          value: "8080"
-        - name: SPRING_PROFILES_ACTIVE
-          value: kubernetes
-        - name: _JAVA_OPTIONS
-          value: "-Xmx285M -Xss1M -XX:MaxMetaspaceSize=113M -XX:ReservedCodeCacheSize=32M -XX:CompressedClassSpaceSize=20M -XX:MaxDirectMemorySize=32M -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 -Duser.timezone=Asia/Tokyo -Duser.language=ja -Duser.country=JP -Dinfo.docker.digest=INFO_DOCKER_DIGEST"
-        - name: SECURITY_USER_NAME
-          valueFrom:
-            secretKeyRef:
-              name: blog-config-secret
-              key: ops-username
-        - name: SECURITY_USER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: blog-config-secret
-              key: ops-password
-        - name: BLOG_UPDATER_GITHUB_TOKEN_MAKING_BLOG_IK_AM
-          valueFrom:
-            secretKeyRef:
-              name: blog-updater-secret
-              key: blog-updater-github-token
-        - name: BLOG_UPDATER_GITHUB_TOKEN_UTMAKI_BLOG_IK_AM
-          valueFrom:
-            secretKeyRef:
-              name: blog-updater-secret
-              key: blog-updater-github-token
-        - name: SPRING_DATASOURCE_URL
-          valueFrom:
-            secretKeyRef:
-              name: blog-db-secret
-              key: mysql-jdbc-url
-        - name: SPRING_DATASOURCE_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: blog-db-secret
-              key: mysql-user
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: blog-db-secret
-              key: mysql-password
-        - name: SPRING_RABBITMQ_ADDRESSES
-          valueFrom:
-            secretKeyRef:
-              name: blog-rabbit-secret
-              key: rabbitmq-host
-        - name: SPRING_RABBITMQ_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: blog-rabbit-secret
-              key: rabbitmq-user
-        - name: SPRING_RABBITMQ_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: blog-rabbit-secret
-              key: rabbitmq-password
-        resources:
-          limits:
-            memory: "512Mi"
-          requests:
-            memory: "512Mi"
-        readinessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 15
-          timeoutSeconds: 3
-          periodSeconds: 10
-          failureThreshold: 3
-        livenessProbe:
-          tcpSocket:
-            port: 8080
-          initialDelaySeconds: 180
-          timeoutSeconds: 3
-          periodSeconds: 10
-          failureThreshold: 3
+  protocol: http
+  input: blog-webhook
+  container:
+    image: asia.gcr.io/fe-tmaki/blog-updater:latest
+    env:
+    - name: BLOG_UPDATER_GITHUB_TOKEN_MAKING_BLOG_IK_AM
+      valueFrom:
+        secretKeyRef:
+          name: blog-updater-secret
+          key: blog-updater-github-token
+    - name: BLOG_UPDATER_GITHUB_TOKEN_UTMAKI_BLOG_IK_AM
+      valueFrom:
+        secretKeyRef:
+          name: blog-updater-secret
+          key: blog-updater-github-token
+    - name: SPRING_DATASOURCE_URL
+      valueFrom:
+        secretKeyRef:
+          name: blog-db-secret
+          key: mysql-jdbc-url
+    - name: SPRING_DATASOURCE_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: blog-db-secret
+          key: mysql-user
+    - name: SPRING_DATASOURCE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: blog-db-secret
+          key: mysql-password

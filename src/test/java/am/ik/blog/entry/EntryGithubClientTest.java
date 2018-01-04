@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-import am.ik.blog.BlogUpdaterProps;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class EntryGithubClientTest {
-	EntryGithubClient githubClient = new EntryGithubClient(new BlogUpdaterProps());
+	EntryGithubClient githubClient = new EntryGithubClient(new ObjectMapper());
 
 	@Test
 	public void test() {
@@ -21,8 +21,5 @@ public class EntryGithubClientTest {
 		assertThat(entry.frontMatter).isNotNull();
 		assertThat(entry.created).isNotNull();
 		assertThat(entry.updated).isNotNull();
-		Entry entryCached = githubClient.get("making/blog.ik.am", entryId)
-				.doOnSuccess(System.out::println).block();
-		assertThat(entryCached).isSameAs(entry);
 	}
 }

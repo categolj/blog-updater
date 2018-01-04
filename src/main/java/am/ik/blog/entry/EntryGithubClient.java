@@ -1,103 +1,76 @@
 package am.ik.blog.entry;
 
-import static java.lang.String.format;
-
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import am.ik.blog.BlogUpdaterProps;
 import am.ik.blog.entry.factory.EntryFactory;
-import lombok.RequiredArgsConstructor;
+import io.netty.handler.codec.http.HttpMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.http.client.HttpClient;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
-@Component
-@RequiredArgsConstructor
 public class EntryGithubClient {
 	private final Logger log = LoggerFactory.getLogger(EntryGithubClient.class);
-	private final WebClient webClient = WebClient.builder()
-			.baseUrl("https://api.github.com/repos/")
-			.defaultHeader(HttpHeaders.USER_AGENT, "am.ik.blog.BlogApiApplication")
-			.build();
+	private final HttpClient httpClient = HttpClient.create();
 	private final EntryFactory entryFactory = new EntryFactory();
 	private final ConcurrentMap<EntryId, Tuple2<LastModified, Entry>> lastModifieds = new ConcurrentHashMap<>();
-	private final BlogUpdaterProps props;
+	private final ObjectMapper objectMapper;
 
-	Consumer<HttpHeaders> headers(String repository) {
-		return headers -> {
-			String token = Optional
-					.ofNullable(props.getGithubToken())
-					.map(m -> m.get(repository))
-					.orElseGet(
-							() -> {
-								String key = "BLOG_UPDATER_GITHUB_TOKEN_"
-										+ (repository.toUpperCase().replace("/", "_")
-												.replace(".", "_"));
-								log.warn("fallback to get from environment variable({})",
-										key);
-								return System.getenv(key);
-							});
-			if (!StringUtils.isEmpty(token)) {
-				log.info("Set Github Token for {}", repository);
-				headers.add(HttpHeaders.AUTHORIZATION, "token " + token);
-			}
-		};
+	public EntryGithubClient(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
 	}
 
-	public Mono<Entry> get(String repository, EntryId entryId) {
-		log.info("get repository={}, entryId={}", repository, entryId);
-		return webClient.get()
-				.uri(repository + "/contents/content/{id}.md",
-						format("%05d", entryId.value))
-				.headers(headers(repository))
-				.ifModifiedSince(lastModifieds
-						.getOrDefault(entryId, Tuples.of(LastModified.EPOCH, Entry.builder().build()))
-						.getT1().value)
-				.exchange().flatMap(response -> {
-					LastModified lastModified = new LastModified(
-							response.headers().asHttpHeaders().getLastModified());
-					if (response.statusCode() == HttpStatus.NOT_MODIFIED) {
-						return Mono.just(lastModifieds.get(entryId).getT2());
+	public EntryGithubClient() {
+		this(new ObjectMapper());
+	}
+
+	public Mono<Entry> get(String repo, EntryId entryId) {
+		log.info("get repo={}, entryId={}", repo, entryId);
+		String url = String.format(
+				"https://api.github.com/repos/%s/contents/content/%05d.md", repo,
+				entryId.value);
+		return this.httpClient //
+				.request(HttpMethod.GET, url, req -> {
+					String r = (repo.toUpperCase().replace("/", "_").replace(".", "_"));
+					String key = "BLOG_UPDATER_GITHUB_TOKEN_" + r;
+					String token = System.getenv(key);
+					if (token != null) {
+						return req.addHeader("Authorization", "token " + token);
 					}
-					if (response.statusCode() == HttpStatus.NOT_FOUND) {
-						return Mono.empty();
+					else {
+						return req;
 					}
-					if (response.statusCode().is4xxClientError()) {
-						return Mono.error(new IllegalStateException(
-								response.statusCode() + " CLIENT ERROR"));
-					}
-					if (response.statusCode().is5xxServerError()) {
-						return Mono.error(new IllegalStateException(
-								response.statusCode() + " SERVER ERROR"));
-					}
-					return response.bodyToMono(JsonNode.class)
-							.map(node -> node.get("content").asText()).map(this::decode)
-							.flatMap(body -> bodyToBuilder(entryId, body))
-							.flatMap(builder -> builderToEntry(repository, entryId,
-									builder))
-							.map(Entry::useFrontMatterDate)
-							.doOnSuccess(entry -> lastModifieds.put(entryId,
-									Tuples.of(lastModified, entry)));
-				});
+				}) //
+				.flatMap(r -> r.receive().aggregate().asByteArray()) //
+				.map(this::toJsonNode) //
+				.map(n -> n.get("content").asText()) //
+				.map(this::decode) //
+				.flatMap(body -> bodyToBuilder(entryId, body)) //
+				.flatMap(builder -> builderToEntry(repo, entryId, builder)) //
+				.map(Entry::useFrontMatterDate);
+	}
+
+	private JsonNode toJsonNode(byte[] b) {
+		try {
+			return this.objectMapper.readTree(b);
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	private InputStream decode(String base64Content) {
@@ -130,11 +103,12 @@ public class EntryGithubClient {
 
 	private Flux<JsonNode> commits(String repository, EntryId entryId) {
 		log.info("commits repository={}, entryId={}", repository, entryId);
-		return webClient.get()
-				.uri(repository + "/commits?path={path}",
-						format("content/%05d.md", entryId.value))
-				.headers(headers(repository)).exchange()
-				.flatMap(response -> response.bodyToMono(JsonNode.class))
+		String url = String.format(
+				"https://api.github.com/repos/%s/commits?path=content/%05d.md",
+				repository, entryId.value);
+		return this.httpClient.get(url) //
+				.flatMap(r -> r.receive().aggregate().asByteArray()) //
+				.map(this::toJsonNode) //
 				.flatMapMany(node -> Flux
 						.fromStream(StreamSupport.stream(node.spliterator(), false)));
 	}

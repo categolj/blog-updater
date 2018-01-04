@@ -1,85 +1,82 @@
 package am.ik.blog.entry;
 
-import static java.util.stream.Collectors.toList;
-import static org.springframework.web.reactive.function.BodyInserters.fromObject;
-import static org.springframework.web.reactive.function.server.RequestPredicates.*;
-import static org.springframework.web.reactive.function.server.ServerResponse.*;
+import static java.util.stream.StreamSupport.stream;
 
-import org.springframework.cloud.stream.annotation.StreamListener;
-import org.springframework.cloud.stream.messaging.Sink;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
+import am.ik.blog.BlogUpdaterApplication;
 
-@Component
-@RequiredArgsConstructor
-@Slf4j
-public class EntryUpdater {
-	private final EntryGithubClient githubClient;
-	private final EntryMapperReactiveWrapper entryMapper;
-	private final ObjectMapper objectMapper;
+public class EntryUpdater implements Function<Map<String, Object>, String> {
+	private static final Logger log = LoggerFactory.getLogger(EntryUpdater.class);
+	private final ObjectMapper objectMapper = new ObjectMapper();
+	@Autowired
+	EntryMapper entryMapper;
+	ConfigurableApplicationContext context;
+	EntryGithubClient githubClient = new EntryGithubClient(objectMapper);
 
-	public RouterFunction<ServerResponse> route() {
-		return RouterFunctions.route(POST("/entries/{entryId}"), this::add)
-				.andRoute(GET("/entries/{entryId}"), this::get)
-				.andRoute(PUT("/entries/{entryId}"), this::update);
+	@Override
+	public String apply(Map<String, Object> body) {
+		JsonNode node = this.objectMapper.convertValue(body, JsonNode.class);
+		String repository = node.get("repository").get("full_name").asText();
+		log.info("Received a webhook from {}", repository);
+		JsonNode commits = node.get("commits").get(0);
+		this.update(repository, this.entryIds(commits, "added"));
+		this.update(repository, this.entryIds(commits, "modified"));
+		this.delete(this.entryIds(commits, "removed"));
+		return "OK";
 	}
 
-	@StreamListener(target = Sink.INPUT, condition = "headers['type']=='added' || headers['type']=='modified'")
-	void handleUpdate(@Payload String body) throws Exception {
-		WebHookRequest request = this.objectMapper.readValue(body, WebHookRequest.class);
-		log.info("Received {}", request);
-		Mono.when(request.getEntryIds().stream()
-				.map(entryId -> this.getAndSave(request.getRepository(), entryId).then())
-				.collect(toList())).doOnSuccess(o -> log.info("Updated!"))
-				.doOnError(e -> log.error("Error!", e)).subscribe();
+	private List<EntryId> entryIds(JsonNode commits, String type) {
+		return stream(commits.get(type).spliterator(), false) //
+				.map(JsonNode::asText) //
+				.map(s -> s.replace("content/", "")) //
+				.filter(Entry::isPublicFileName) //
+				.map(EntryId::fromFileName) //
+				.collect(Collectors.toList());
 	}
 
-	@StreamListener(target = Sink.INPUT, condition = "headers['type']=='removed'")
-	void handleDelete(@Payload String body) throws Exception {
-		WebHookRequest request = this.objectMapper.readValue(body, WebHookRequest.class);
-		log.info("Received {}", request);
-		Mono.when(
-				request.getEntryIds().stream().map(entryMapper::delete).collect(toList()))
-				.doOnSuccess(o -> log.info("Removed!"))
-				.doOnError(e -> log.error("Error!", e)).subscribe();
+	private void update(String repository, List<EntryId> entryIds) {
+		entryIds.forEach(entryId -> {
+			log.info("Update {}", entryId);
+			Entry entry = this.githubClient.get(repository, entryId).block();
+			this.entryMapper.save(entry);
+		});
 	}
 
-	EntryId entryId(ServerRequest req) {
-		return new EntryId(Long.valueOf(req.pathVariable("entryId")));
+	private void delete(List<EntryId> entryIds) {
+		entryIds.forEach(entryId -> {
+			log.info("Delete {}", entryId);
+			this.entryMapper.delete(entryId);
+		});
 	}
 
-	Mono<Entry> getAndSave(String repository, EntryId entryId) {
-		Mono<Entry> entry = githubClient.get(repository, entryId);
-		return entry.flatMap(e -> entryMapper.save(entry).then(entry));
+	@PostConstruct
+	public void init() {
+		if (this.entryMapper == null) {
+			this.context = new SpringApplication(BlogUpdaterApplication.class).run();
+			this.entryMapper = context.getBean(EntryMapper.class);
+		}
 	}
 
-	Mono<ServerResponse> add(ServerRequest req) {
-		EntryId entryId = entryId(req);
-		return getAndSave(req.queryParam("repository").orElse(""), entryId)
-				.flatMap(e -> created(req.uri()).body(fromObject(e)))
-				.switchIfEmpty(notFound().build());
+	@PreDestroy
+	public void close() {
+		if (this.context != null) {
+			this.context.close();
+		}
 	}
-
-	Mono<ServerResponse> update(ServerRequest req) {
-		EntryId entryId = entryId(req);
-		return getAndSave(req.queryParam("repository").orElse(""), entryId)
-				.flatMap(e -> ok().body(fromObject(e))).switchIfEmpty(notFound().build());
-	}
-
-	Mono<ServerResponse> get(ServerRequest req) {
-		EntryId entryId = entryId(req);
-		return entryMapper.findOne(entryId).flatMap(e -> ok().body(fromObject(e)))
-				.switchIfEmpty(notFound().build());
-	}
-
 }

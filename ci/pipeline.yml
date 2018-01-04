@@ -65,11 +65,6 @@ resources:
     type: slack-notification
     source:
       url: ((slack-webhook-url))
-  - name: mysql
-    type: docker-image
-    source:
-      repository: mariadb
-      tag: 10.0.30
 jobs:
 ### Dev
 - name: unit-test-develop
@@ -78,9 +73,6 @@ jobs:
       - get: repo
         resource: repo-develop
         trigger: true
-      - get: mysql
-        params:
-          save: true
     - task: mvn-test
       privileged: true
       params:
@@ -90,33 +82,21 @@ jobs:
         image_resource:
           type: docker-image
           source:
-            repository: making/dcind-jdk
+            repository: maven
         inputs:
         - name: repo
-        - name: mysql
         caches:
         - path: repo/m2
         run:
-          path: sh
+          path: bash
           args:
           - -c
           - |
             set -e
-
-            source /docker-lib.sh
-            start_docker
-            docker load -i mysql/image
-            docker tag "$(cat mysql/image-id)" "$(cat mysql/repository):$(cat mysql/tag)"
-            docker images
-
             cd repo
             rm -rf ~/.m2
             ln -fs $(pwd)/m2 ~/.m2
-
-            docker-compose up -d
-            sleep 3
             mvn test
-            docker-compose down
       on_failure:
         put: slack-alert
         params:
@@ -198,7 +178,8 @@ jobs:
     params: &DOCKER_PUSH
       build: updated
       build_args:
-        JAR_FILE: app.jar
+        FUN: app.jar
+        FUN_CLASS: am.ik.blog.entry.EntryUpdater
     on_failure:
       put: slack-alert
       params:
@@ -238,6 +219,13 @@ jobs:
           set -e
           DIGEST=`cat docker/digest`
           sed "s/:latest/@${DIGEST}/g" repo/k8s/blog-updater.yml | sed "s/FIXME/Bump to ${DIGEST}/g" | sed "s/INFO_DOCKER_DIGEST/${DIGEST}/g" > updated/blog-updater.yml
+  - put: k8s-develop
+    params:
+      kubectl: delete -f updated/blog-updater.yml
+    on_failure:
+      put: slack-alert
+      params:
+        <<: *SLACK_FAILURE
   - put: k8s-develop
     params:
       kubectl: apply -f updated/blog-updater.yml
@@ -308,9 +296,6 @@ jobs:
       trigger: true
       passed:
       - merge-develop-to-master
-    - get: mysql
-      params:
-        save: true
   - task: mvn-test
     privileged: true
     params:
@@ -470,6 +455,13 @@ jobs:
           VERSION=`cat repo-version/number`
           DIGEST=`cat docker/digest`
           sed "s/latest/${VERSION}/g" repo/k8s/blog-updater.yml | sed "s/FIXME/Bump to ${VERSION}/g" | sed "s/INFO_DOCKER_DIGEST/${DIGEST}/g" > updated/blog-updater.yml
+  - put: k8s-master
+    params:
+      kubectl: delete -f updated/blog-updater.yml
+    on_failure:
+      put: slack-alert
+      params:
+        <<: *SLACK_FAILURE
   - put: k8s-master
     params:
       kubectl: apply -f updated/blog-updater.yml

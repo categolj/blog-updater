@@ -22,3 +22,6 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+dependency-reduced-pom.xml
+test-payload.json

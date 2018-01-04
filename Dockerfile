@@ -1,5 +1,7 @@
-FROM openjdk:8-alpine
-VOLUME /tmp
-ARG JAR_FILE
-ADD ${JAR_FILE} /app.jar
-ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar"]
+FROM projectriff/java-function-invoker:0.0.2
+
+ARG FUN
+ARG FUN_CLASS
+
+ADD ${FUN} /fun.jar
+ENV FUNCTION_URI file:///fun.jar?handler=${FUN_CLASS}
