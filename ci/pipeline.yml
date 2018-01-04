@@ -131,6 +131,7 @@ jobs:
           rm -rf ~/.m2
           ln -fs $(pwd)/m2 ~/.m2
           mvn package -DskipTests=true
+          rm -f target/original*.jar
           cp target/*.jar ../build/
   - aggregate:
     - put: nexus
@@ -229,8 +230,6 @@ jobs:
   - put: k8s-develop
     params:
       kubectl: apply -f updated/blog-updater.yml
-      wait_until_ready: 120
-      wait_until_ready_selector: app=blog-updater
     on_failure:
       put: slack-alert
       params:
@@ -465,8 +464,6 @@ jobs:
   - put: k8s-master
     params:
       kubectl: apply -f updated/blog-updater.yml
-      wait_until_ready: 120
-      wait_until_ready_selector: app=blog-updater
     on_failure:
       put: slack-alert
       params:
