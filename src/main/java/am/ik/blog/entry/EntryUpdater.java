@@ -34,15 +34,21 @@ public class EntryUpdater implements Function<Map<String, Object>, String> {
 		JsonNode node = this.objectMapper.convertValue(body, JsonNode.class);
 		String repository = node.get("repository").get("full_name").asText();
 		log.info("Received a webhook from {}", repository);
-		JsonNode commits = node.get("commits").get(0);
-		this.update(repository, this.entryIds(commits, "added"));
-		this.update(repository, this.entryIds(commits, "modified"));
-		this.delete(this.entryIds(commits, "removed"));
+		if (node.has("commits")) {
+			node.get("commits").forEach(commit -> {
+				this.update(repository, this.entryIds(commit, "added"));
+				this.update(repository, this.entryIds(commit, "modified"));
+				this.delete(this.entryIds(commit, "removed"));
+			});
+		}
+		else {
+			log.warn("No commit is found.");
+		}
 		return "OK";
 	}
 
-	private List<EntryId> entryIds(JsonNode commits, String type) {
-		return stream(commits.get(type).spliterator(), false) //
+	private List<EntryId> entryIds(JsonNode commit, String type) {
+		return stream(commit.get(type).spliterator(), false) //
 				.map(JsonNode::asText) //
 				.map(s -> s.replace("content/", "")) //
 				.filter(Entry::isPublicFileName) //
