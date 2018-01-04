@@ -6,8 +6,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
@@ -27,14 +25,13 @@ public class EntryGithubClient {
 	private final Logger log = LoggerFactory.getLogger(EntryGithubClient.class);
 	private final HttpClient httpClient = HttpClient.create();
 	private final EntryFactory entryFactory = new EntryFactory();
-	private final ConcurrentMap<EntryId, Tuple2<LastModified, Entry>> lastModifieds = new ConcurrentHashMap<>();
 	private final ObjectMapper objectMapper;
 
 	public EntryGithubClient(ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 	}
 
-	public EntryGithubClient() {
+	private EntryGithubClient() {
 		this(new ObjectMapper());
 	}
 
