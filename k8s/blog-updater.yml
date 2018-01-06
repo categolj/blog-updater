@@ -15,6 +15,8 @@ spec:
   container:
     image: asia.gcr.io/fe-tmaki/blog-updater:latest
     env:
+    - name: _JAVA_OPTIONS
+      value: "-Duser.timezone=Asia/Tokyo"
     - name: BLOG_UPDATER_GITHUB_TOKEN_MAKING_BLOG_IK_AM
       valueFrom:
         secretKeyRef:
